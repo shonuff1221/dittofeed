@@ -30,6 +30,12 @@ services:
           memory: "${LITE_CONTAINER_MEM_LIMIT:-1024}m"
     ports:
       - "3042:3000"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
+      interval: "30s"
+      timeout: "10s"
+      retries: 3
+      start_period: "40s"
     depends_on:
       - "postgres"
       - "temporal"
@@ -38,6 +44,10 @@ services:
       <<: *backend-app-env
       # comment out after initial setup
       BOOTSTRAP: "true"
+      HOST: "0.0.0.0"
+      DASHBOARD_API_BASE: "https://liteditto.saocloud.ga"
+      PUBLIC_URL: "https://liteditto.saocloud.ga"
+      TRUST_PROXY: "true"
     # README: To add local env variables uncomment the following line and add a .env file in the root directory
     env_file:
       - ".env"
