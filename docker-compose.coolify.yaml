@@ -179,4 +179,3 @@ volumes:
 networks:
   dittofeed-network-lite:
     driver: "bridge"
-    name: "dittofeed-network-lite"
