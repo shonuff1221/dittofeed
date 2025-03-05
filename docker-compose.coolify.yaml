@@ -92,7 +92,7 @@ services:
       - "POSTGRES_USER=${DATABASE_USER:-postgres}"
       - "POSTGRES_PWD=${DATABASE_PASSWORD:-password}"
       - "POSTGRES_SEEDS=${DATABASE_HOST:-postgres}"
-      - "DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/prod.yaml"
+      - "DYNAMIC_CONFIG_FILE_PATH=/etc/temporal/config/dynamicconfig/prod.yaml"
       - "SERVICES=history:matching:frontend:worker"
       - "LOG_LEVEL=info"
       - "NUM_HISTORY_SHARDS=4"
