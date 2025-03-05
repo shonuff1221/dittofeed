@@ -58,7 +58,7 @@ services:
       - "clickhouse-server"
     environment:
       <<: *backend-app-env
-    # README: To add local env variables uncomment the following line and add a .env file in the root directory
+    # README: 11To add local env variables uncomment the following line and add a .env file in the root directory
     # env_file:
     #   - ".env"
     networks:

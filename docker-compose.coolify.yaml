@@ -46,7 +46,7 @@ services:
   # useful for upgrading dittofeed
   admin-cli:
     image: "dittofeed/dittofeed-admin-cli:${IMAGE_TAG:-v0.20.0}"
-    entrypoint: []
+    entrypoint: null
     profiles: ["admin-cli"]
     command: "tail -f /dev/null"
     tty: true
@@ -137,7 +137,7 @@ services:
       - "dittofeed-network-lite"
   # Note that minio is only used for local development. In production, use any S3-compatible storage.
   blob-storage:
-    image: minio/minio
+    image: "minio/minio"
     profiles: ["blob-storage"]
     logging:
       driver: "local"
@@ -145,18 +145,18 @@ services:
       - "9000:9000"
       - "9001:9001"
     environment:
-      MINIO_ROOT_USER: admin
-      MINIO_ROOT_PASSWORD: password
+      MINIO_ROOT_USER: "admin"
+      MINIO_ROOT_PASSWORD: "password"
     volumes:
-      - blob-storage:/data
-    command: server --console-address ":9001" /data
+      - "blob-storage:/data"
+    command: "server --console-address \":9001\" /data"
 volumes:
-  postgres:
-  clickhouse_lib:
-  clickhouse_log:
-  blob-storage:
+  postgres: {}
+  clickhouse_lib: {}
+  clickhouse_log: {}
+  blob-storage: {}
 
 networks:
   dittofeed-network-lite:
-    driver: bridge
-    name: dittofeed-network-lite
+    driver: "bridge"
+    name: "dittofeed-network-lite"
