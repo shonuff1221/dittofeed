@@ -12,6 +12,8 @@ x-backend-app-env: &backend-app-env
   DATABASE_PORT: "${DATABASE_PORT:-6688}"
   CLICKHOUSE_HOST: "${CLICKHOUSE_HOST:-http://clickhouse-server:8123}"
   TEMPORAL_ADDRESS: "${TEMPORAL_ADDRESS:-temporal:7233}"
+  TEMPORAL_CONNECTION_TIMEOUT_MS: "30000"
+  TEMPORAL_CONNECTION_ATTEMPTS: "10"
   WORKSPACE_NAME: "${WORKSPACE_NAME:-Default}"
   AUTH_MODE: "${AUTH_MODE:-single-tenant}"
   SECRET_KEY: "${SECRET_KEY:-GEGL1RHjFVOxIO80Dp8+ODlZPOjm2IDBJB/UunHlf3c=}"
@@ -48,6 +50,10 @@ services:
       DASHBOARD_API_BASE: "https://liteditto.saocloud.ga"
       PUBLIC_URL: "https://liteditto.saocloud.ga"
       TRUST_PROXY: "true"
+      # Temporal connection settings
+      TEMPORAL_RETRY_DELAY: "2000"
+      TEMPORAL_RETRY_MAX_ATTEMPTS: "20"
+      TEMPORAL_CONNECTION_TIMEOUT_MS: "60000"
     # README: To add local env variables uncomment the following line and add a .env file in the root directory
     env_file:
       - ".env"
@@ -87,6 +93,9 @@ services:
       - "POSTGRES_PWD=${DATABASE_PASSWORD:-password}"
       - "POSTGRES_SEEDS=${DATABASE_HOST:-postgres}"
       - "DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/prod.yaml"
+      - "SERVICES=history:matching:frontend:worker"
+      - "LOG_LEVEL=info"
+      - "NUM_HISTORY_SHARDS=4"
     image: "temporalio/auto-setup:${TEMPORAL_VERSION:-1.22.4}"
     networks:
       - "dittofeed-network-lite"
@@ -94,6 +103,7 @@ services:
       - "7233:7233"
     volumes:
       - "./packages/backend-lib/temporal-dynamicconfig:/etc/temporal/config/dynamicconfig"
+      - "./packages/backend-lib/temporal-dynamicconfig:/temporal/config/dynamicconfig"
   temporal-ui:
     profiles: ["temporal-ui"]
     container_name: "temporal-ui"
