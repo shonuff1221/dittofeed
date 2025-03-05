@@ -128,7 +128,7 @@ services:
       <<: *clickhouse-credentials
     ports:
       - "8188:8123"
-      - "9000:9000"
+      - "9084:9000"
       - "9009:9009"
     volumes:
       - "clickhouse_lib:/var/lib/clickhouse"
