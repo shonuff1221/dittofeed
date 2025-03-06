@@ -59,6 +59,8 @@ services:
       TEMPORAL_RETRY_DELAY: "2000"
       TEMPORAL_RETRY_MAX_ATTEMPTS: "20"
       TEMPORAL_CONNECTION_TIMEOUT_MS: "60000"
+    volumes:
+      - ./:/artifacts
     # README: To add local env variables uncomment the following line and add a .env file in the root directory
     env_file:
       - ".env"
