@@ -37,7 +37,7 @@ services:
     environment:
       <<: *backend-app-env
       # comment out after initial setup
-      BOOTSTRAP: "false"
+      BOOTSTRAP: "true"
     # README: To add local env variables uncomment the following line and add a .env file in the root directory
     env_file:
       - ".env"
@@ -46,7 +46,7 @@ services:
   # useful for upgrading dittofeed
   admin-cli:
     image: "dittofeed/dittofeed-admin-cli:${IMAGE_TAG:-v0.20.0}"
-    entrypoint: null
+    entrypoint: [null]
     profiles: ["admin-cli"]
     command: "tail -f /dev/null"
     tty: true
