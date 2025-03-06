@@ -57,8 +57,7 @@ services:
     # README: To add local env variables uncomment the following line and add a .env file in the root directory
     env_file:
       - ".env"
-    networks:
-      - "default"
+
   # useful for upgrading dittofeed
   admin-cli:
     image: "dittofeed/dittofeed-admin-cli:${IMAGE_TAG:-v0.20.0}"
@@ -75,10 +74,9 @@ services:
     environment:
       <<: *backend-app-env
     # README: To add local env variables uncomment the following line and add a .env file in the root directory
-    # env_file:
-    #   - ".env"
-    networks:
-      - "default"
+    env_file:
+      - ".env"
+
   temporal:
     container_name: "temporal"
     restart: "always"
@@ -97,8 +95,7 @@ services:
       - "LOG_LEVEL=info"
       - "NUM_HISTORY_SHARDS=4"
     image: "temporalio/auto-setup:${TEMPORAL_VERSION:-1.22.4}"
-    networks:
-      - "default"
+
     ports:
       - "7233:7233"
     volumes:
@@ -116,8 +113,7 @@ services:
       - "TEMPORAL_ADDRESS=temporal:7233"
       - "TEMPORAL_CORS_ORIGINS=http://localhost:3000"
     image: "temporalio/ui:${TEMPORAL_UI_VERSION:-2.22.1}"
-    networks:
-      - "default"
+
     ports:
       - "8080:8080"
   postgres:
@@ -133,8 +129,7 @@ services:
       - "6678:5432"
     volumes:
       - "postgres:/var/lib/postgresql/data"
-    networks:
-      - "default"
+
   clickhouse-server:
     image: "clickhouse/clickhouse-server:23.8.8.20-alpine"
     restart: "always"
@@ -153,8 +148,7 @@ services:
     volumes:
       - "clickhouse_lib:/var/lib/clickhouse"
       - "clickhouse_log:/var/log/clickhouse-server"
-    networks:
-      - "default"
+
   # Note that minio is only used for local development. In production, use any S3-compatible storage.
   blob-storage:
     image: "minio/minio"
@@ -176,6 +170,3 @@ volumes:
   clickhouse_log: {}
   blob-storage: {}
 
-networks:
-  default:
-    driver: "bridge"
