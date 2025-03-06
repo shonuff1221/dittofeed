@@ -9,11 +9,9 @@ x-backend-app-env: &backend-app-env
   <<: [*clickhouse-credentials, *database-credentials]
   NODE_ENV: "production"
   DATABASE_HOST: "${DATABASE_HOST:-postgres}"
-  DATABASE_PORT: "${DATABASE_PORT:-6678}"
+  DATABASE_PORT: "${DATABASE_PORT:-5432}"
   CLICKHOUSE_HOST: "${CLICKHOUSE_HOST:-http://clickhouse-server:8123}"
   TEMPORAL_ADDRESS: "${TEMPORAL_ADDRESS:-temporal:7233}"
-  TEMPORAL_CONNECTION_TIMEOUT_MS: "30000"
-  TEMPORAL_CONNECTION_ATTEMPTS: "10"
   WORKSPACE_NAME: "${WORKSPACE_NAME:-Default}"
   AUTH_MODE: "${AUTH_MODE:-single-tenant}"
   SECRET_KEY: "${SECRET_KEY:-GEGL1RHjFVOxIO80Dp8+ODlZPOjm2IDBJB/UunHlf3c=}"
@@ -31,13 +29,7 @@ services:
         limits:
           memory: "${LITE_CONTAINER_MEM_LIMIT:-1024}m"
     ports:
-      - "3042:3000"
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
-      interval: "30s"
-      timeout: "10s"
-      retries: 3
-      start_period: "40s"
+      - "3096:3000"
     depends_on:
       - "postgres"
       - "temporal"
@@ -45,19 +37,12 @@ services:
     environment:
       <<: *backend-app-env
       # comment out after initial setup
-      # BOOTSTRAP: "true"
-      # HOST: "0.0.0.0"
-      # DASHBOARD_API_BASE: "https://liteditto.saocloud.ga"
-      # PUBLIC_URL: "https://liteditto.saocloud.ga"
-      # TRUST_PROXY: "true"
-      # Temporal connection settings
-      TEMPORAL_RETRY_DELAY: "2000"
-      TEMPORAL_RETRY_MAX_ATTEMPTS: "20"
-      TEMPORAL_CONNECTION_TIMEOUT_MS: "60000"
+      BOOTSTRAP: "true"
     # README: To add local env variables uncomment the following line and add a .env file in the root directory
     env_file:
       - ".env"
-
+    networks:
+      - "dittofeed-network-lite"
   # useful for upgrading dittofeed
   admin-cli:
     image: "dittofeed/dittofeed-admin-cli:${IMAGE_TAG:-v0.20.0}"
@@ -73,10 +58,11 @@ services:
       - "clickhouse-server"
     environment:
       <<: *backend-app-env
-    # README: To add local env variables uncomment the following line and add a .env file in the root directory
-    env_file:
-      - ".env"
-
+    # README: 11To add local env variables uncomment the following line and add a .env file in the root directory
+    # env_file:
+    #   - ".env"
+    networks:
+      - "dittofeed-network-lite"
   temporal:
     container_name: "temporal"
     restart: "always"
@@ -86,21 +72,18 @@ services:
       - "postgres"
     environment:
       - "DB=postgresql"
-      - "DB_PORT=${DATABASE_PORT:-6678}"
+      - "DB_PORT=${DATABASE_PORT:-5432}"
       - "POSTGRES_USER=${DATABASE_USER:-postgres}"
       - "POSTGRES_PWD=${DATABASE_PASSWORD:-password}"
       - "POSTGRES_SEEDS=${DATABASE_HOST:-postgres}"
-      - "DYNAMIC_CONFIG_FILE_PATH=/etc/temporal/config/dynamicconfig/prod.yaml"
-      - "SERVICES=history:matching:frontend:worker"
-      - "LOG_LEVEL=info"
-      - "NUM_HISTORY_SHARDS=4"
+      - "DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/prod.yaml"
     image: "temporalio/auto-setup:${TEMPORAL_VERSION:-1.22.4}"
-
+    networks:
+      - "dittofeed-network-lite"
     ports:
       - "7233:7233"
     volumes:
       - "./packages/backend-lib/temporal-dynamicconfig:/etc/temporal/config/dynamicconfig"
-      - "./packages/backend-lib/temporal-dynamicconfig:/temporal/config/dynamicconfig"
   temporal-ui:
     profiles: ["temporal-ui"]
     container_name: "temporal-ui"
@@ -113,9 +96,10 @@ services:
       - "TEMPORAL_ADDRESS=temporal:7233"
       - "TEMPORAL_CORS_ORIGINS=http://localhost:3000"
     image: "temporalio/ui:${TEMPORAL_UI_VERSION:-2.22.1}"
-
+    networks:
+      - "dittofeed-network-lite"
     ports:
-      - "8080:8080"
+      - "8042:8080"
   postgres:
     image: "postgres:${POSTGRES_VERSION:-15}"
     restart: "always"
@@ -126,10 +110,11 @@ services:
       - "POSTGRES_USER=${DATABASE_USER:-postgres}"
       - "POSTGRES_DB=dittofeed"
     ports:
-      - "6678:5432"
+      - "6605:5432"
     volumes:
-      - "ditto_postgres:/var/lib/postgresql/data"
-
+      - "postgres:/var/lib/postgresql/data"
+    networks:
+      - "dittofeed-network-lite"
   clickhouse-server:
     image: "clickhouse/clickhouse-server:23.8.8.20-alpine"
     restart: "always"
@@ -142,31 +127,36 @@ services:
     environment:
       <<: *clickhouse-credentials
     ports:
-      - "8188:8123"
-      - "9084:9000"
-      - "9011:9009"
+      - "8166:8123"
+      - "9033:9000"
+      - "9034:9009"
     volumes:
-      - "ditto_clickhouse-lib:/var/lib/clickhouse"
-      - "ditto_clickhouse-log:/var/log/clickhouse-server"
-
+      - "clickhouse_lib:/var/lib/clickhouse"
+      - "clickhouse_log:/var/log/clickhouse-server"
+    networks:
+      - "dittofeed-network-lite"
   # Note that minio is only used for local development. In production, use any S3-compatible storage.
   blob-storage:
-    image: "minio/minio"
+    image: minio/minio
     profiles: ["blob-storage"]
     logging:
       driver: "local"
     ports:
-      - "9084:9000"
-      - "9096:9001"
+      - "9033:9000"
+      - "9017:9001"
     environment:
-      MINIO_ROOT_USER: "admin"
-      MINIO_ROOT_PASSWORD: "password"
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: password
     volumes:
-      - "ditto_blob-storage:/data"
-    command: "server --console-address \":9001\" /data"
+      - blob-storage:/data
+    command: server --console-address ":9001" /data
 volumes:
-  postgres: {}
-  clickhouse_lib: {}
-  clickhouse_log: {}
-  blob-storage: {}
+  postgres:
+  clickhouse_lib:
+  clickhouse_log:
+  blob-storage:
 
+networks:
+  dittofeed-network-lite:
+    driver: bridge
+    name: dittofeed-network-lite
