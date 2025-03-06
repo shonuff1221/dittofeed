@@ -19,6 +19,11 @@ x-backend-app-env: &backend-app-env
   SECRET_KEY: "${SECRET_KEY:-GEGL1RHjFVOxIO80Dp8+ODlZPOjm2IDBJB/UunHlf3c=}"
   PASSWORD: "${PASSWORD:-password}"
   DASHBOARD_API_BASE: "${DASHBOARD_API_BASE:-http://localhost:3000}"
+networks:
+  dittofeed-prod-network:
+    name: dittofeed-prod-network
+    driver: bridge
+    attachable: true
 services:
   lite:
     image: "dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.20.0}"
@@ -57,6 +62,8 @@ services:
     # README: To add local env variables uncomment the following line and add a .env file in the root directory
     env_file:
       - ".env"
+    networks:
+      - dittofeed-prod-network
 
   # useful for upgrading dittofeed
   admin-cli:
@@ -76,6 +83,8 @@ services:
     # README: To add local env variables uncomment the following line and add a .env file in the root directory
     env_file:
       - ".env"
+    networks:
+      - dittofeed-prod-network
 
   temporal:
     container_name: "temporal"
@@ -101,6 +110,9 @@ services:
     volumes:
       - "./packages/backend-lib/temporal-dynamicconfig:/etc/temporal/config/dynamicconfig"
       - "./packages/backend-lib/temporal-dynamicconfig:/temporal/config/dynamicconfig"
+    networks:
+      - dittofeed-prod-network
+
   temporal-ui:
     profiles: ["temporal-ui"]
     container_name: "temporal-ui"
@@ -116,6 +128,9 @@ services:
 
     ports:
       - "8080:8080"
+    networks:
+      - dittofeed-prod-network
+
   postgres:
     image: "postgres:${POSTGRES_VERSION:-15}"
     restart: "always"
@@ -129,6 +144,8 @@ services:
       - "6678:5432"
     volumes:
       - "ditto_postgres:/var/lib/postgresql/data"
+    networks:
+      - dittofeed-prod-network
 
   clickhouse-server:
     image: "clickhouse/clickhouse-server:23.8.8.20-alpine"
@@ -148,6 +165,8 @@ services:
     volumes:
       - "ditto_clickhouse-lib:/var/lib/clickhouse"
       - "ditto_clickhouse-log:/var/log/clickhouse-server"
+    networks:
+      - dittofeed-prod-network
 
   # Note that minio is only used for local development. In production, use any S3-compatible storage.
   blob-storage:
@@ -164,9 +183,11 @@ services:
     volumes:
       - "ditto_blob-storage:/data"
     command: "server --console-address \":9001\" /data"
-volumes:
-  postgres: {}
-  clickhouse_lib: {}
-  clickhouse_log: {}
-  blob-storage: {}
+    networks:
+      - dittofeed-prod-network
 
+volumes:
+  ditto_postgres: {}
+  ditto_clickhouse-lib: {}
+  ditto_clickhouse-log: {}
+  ditto_blob-storage: {}
