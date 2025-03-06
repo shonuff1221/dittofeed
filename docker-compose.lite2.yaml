@@ -64,7 +64,7 @@ services:
     networks:
       - "dittofeed-network-lite2"
   temporal:
-    container_name: "temporal"
+    container_name: "temporal2"
     restart: "always"
     logging:
       driver: "local"
@@ -86,7 +86,7 @@ services:
       - "./packages/backend-lib/temporal-dynamicconfig:/etc/temporal/config/dynamicconfig"
   temporal-ui:
     profiles: ["temporal-ui"]
-    container_name: "temporal-ui"
+    container_name: "temporal-ui2"
     restart: "always"
     logging:
       driver: "local"
