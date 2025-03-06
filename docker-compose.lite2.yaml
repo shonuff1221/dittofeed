@@ -37,12 +37,12 @@ services:
     environment:
       <<: *backend-app-env
       # comment out after initial setup
-      BOOTSTRAP: "true"
+      BOOTSTRAP: "false"
     # README: To add local env variables uncomment the following line and add a .env file in the root directory
     env_file:
       - ".env"
     networks:
-      - "dittofeed-network-lite2"
+      - "dittofeed-network-lite"
   # useful for upgrading dittofeed
   admin-cli:
     image: "dittofeed/dittofeed-admin-cli:${IMAGE_TAG:-v0.20.0}"
@@ -62,7 +62,7 @@ services:
     # env_file:
     #   - ".env"
     networks:
-      - "dittofeed-network-lite2"
+      - "dittofeed-network-lite"
   temporal:
     container_name: "temporal2"
     restart: "always"
@@ -79,7 +79,7 @@ services:
       - "DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/prod.yaml"
     image: "temporalio/auto-setup:${TEMPORAL_VERSION:-1.22.4}"
     networks:
-      - "dittofeed-network-lite2"
+      - "dittofeed-network-lite"
     ports:
       - "7233:7233"
     volumes:
@@ -97,7 +97,7 @@ services:
       - "TEMPORAL_CORS_ORIGINS=http://localhost:3000"
     image: "temporalio/ui:${TEMPORAL_UI_VERSION:-2.22.1}"
     networks:
-      - "dittofeed-network-lite2"
+      - "dittofeed-network-lite"
     ports:
       - "8042:8080"
   postgres:
@@ -114,7 +114,7 @@ services:
     volumes:
       - "postgres:/var/lib/postgresql/data"
     networks:
-      - "dittofeed-network-lite2"
+      - "dittofeed-network-lite"
   clickhouse-server:
     image: "clickhouse/clickhouse-server:23.8.8.20-alpine"
     restart: "always"
@@ -134,7 +134,7 @@ services:
       - "clickhouse_lib:/var/lib/clickhouse"
       - "clickhouse_log:/var/log/clickhouse-server"
     networks:
-      - "dittofeed-network-lite2"
+      - "dittofeed-network-lite"
   # Note that minio is only used for local development. In production, use any S3-compatible storage.
   blob-storage:
     image: minio/minio
@@ -159,4 +159,4 @@ volumes:
 networks:
   dittofeed-network-lite:
     driver: bridge
-    name: dittofeed-network-lite2
+    name: dittofeed-network-lite
