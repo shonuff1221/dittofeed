@@ -59,8 +59,8 @@ services:
     environment:
       <<: *backend-app-env
     # README: 11To add local env variables uncomment the following line and add a .env file in the root directory
-    # env_file:
-    #   - ".env"
+    env_file:
+      - ".env"
     networks:
       - "dittofeed-network-lite"
   temporal:
