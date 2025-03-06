@@ -83,7 +83,7 @@ services:
     ports:
       - "7233:7233"
     volumes:
-      - "./packages/backend-lib/temporal-dynamicconfig:/etc/temporal/config"
+      - "./packages/backend-lib/temporal-dynamicconfig:/temporal/config/dynamicconfig"
   temporal-ui:
     profiles: ["temporal-ui"]
     container_name: "temporal-ui"
