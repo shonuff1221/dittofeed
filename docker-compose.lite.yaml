@@ -70,9 +70,6 @@ services:
       driver: "local"
     depends_on:
       - "postgres"
-    clusterMetadata:
-      name: "dittofeed-cluster"
-      persistenceStore: "postgres"
     environment:
       - "DB=postgresql"
       - "DB_PORT=${DATABASE_PORT:-5432}"

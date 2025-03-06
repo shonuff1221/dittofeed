@@ -1,0 +1,23 @@
+# Temporal base configuration
+clusterMetadata:
+  name: "dittofeed-cluster"
+  persistenceStore: "postgresql"
+
+persistence:
+  default:
+    postgresql:
+      user: "${POSTGRES_USER:-postgres}"
+      password: "${POSTGRES_PWD:-password}"
+      databaseName: "dittofeed"
+      hosts: "${POSTGRES_SEEDS:-postgres}"
+      port: "${DB_PORT:-5432}"
+      connectAttributes:
+        sslmode: "disable"
+
+log:
+  format: "json"
+  level: "info"
+
+frontend:
+  port: 7233
+  metricsPort: 0
