@@ -50,11 +50,11 @@ services:
     environment:
       <<: *backend-app-env
       # comment out after initial setup
-      # BOOTSTRAP: "true"
-      # HOST: "0.0.0.0"
-      # DASHBOARD_API_BASE: "https://liteditto.saocloud.ga"
-      # PUBLIC_URL: "https://liteditto.saocloud.ga"
-      # TRUST_PROXY: "true"
+      BOOTSTRAP: "true"
+      HOST: "0.0.0.0"
+      DASHBOARD_API_BASE: "https://liteditto.saocloud.ga"
+      PUBLIC_URL: "https://liteditto.saocloud.ga"
+      TRUST_PROXY: "true"
       # Temporal connection settings
       TEMPORAL_RETRY_DELAY: "2000"
       TEMPORAL_RETRY_MAX_ATTEMPTS: "20"
