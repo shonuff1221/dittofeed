@@ -128,7 +128,7 @@ services:
     ports:
       - "6678:5432"
     volumes:
-      - "postgres:/var/lib/postgresql/data"
+      - "ditto_postgres:/var/lib/postgresql/data"
 
   clickhouse-server:
     image: "clickhouse/clickhouse-server:23.8.8.20-alpine"
@@ -146,8 +146,8 @@ services:
       - "9084:9000"
       - "9011:9009"
     volumes:
-      - "clickhouse_lib:/var/lib/clickhouse"
-      - "clickhouse_log:/var/log/clickhouse-server"
+      - "ditto_clickhouse-lib:/var/lib/clickhouse"
+      - "ditto_clickhouse-log:/var/log/clickhouse-server"
 
   # Note that minio is only used for local development. In production, use any S3-compatible storage.
   blob-storage:
@@ -162,7 +162,7 @@ services:
       MINIO_ROOT_USER: "admin"
       MINIO_ROOT_PASSWORD: "password"
     volumes:
-      - "blob-storage:/data"
+      - "ditto_blob-storage:/data"
     command: "server --console-address \":9001\" /data"
 volumes:
   postgres: {}
