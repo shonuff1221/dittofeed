@@ -17,6 +17,7 @@ import { db } from "./db";
 import {
   segment as dbSegment,
   segmentAssignment as dbSegmentAssignment,
+  subscriptionGroup as dbSubscriptionGroup,
   userProperty as dbUserProperty,
   userPropertyAssignment as dbUserPropertyAssignment,
 } from "./db/schema";
@@ -26,9 +27,11 @@ import {
   CursorDirectionEnum,
   DBResourceTypeEnum,
   DeleteUsersRequest,
+  GetUsersCountResponse,
   GetUsersRequest,
   GetUsersResponse,
   GetUsersResponseItem,
+  SubscriptionGroupType,
   UserProperty,
   UserPropertyDefinition,
 } from "./types";
@@ -55,6 +58,7 @@ export async function getUsers({
   userPropertyFilter,
   direction = CursorDirectionEnum.After,
   limit = 10,
+  subscriptionGroupFilter,
 }: GetUsersRequest): Promise<Result<GetUsersResponse, Error>> {
   // TODO implement alternate sorting
   let cursor: Cursor | null = null;
@@ -111,6 +115,61 @@ export async function getUsers({
     );
     havingSubClauses.push(`${varName} = True`);
   }
+  if (subscriptionGroupFilter) {
+    const subscriptionGroupsRows = await db()
+      .select({
+        id: dbSubscriptionGroup.id,
+        type: dbSubscriptionGroup.type,
+        segmentId: dbSegment.id,
+      })
+      .from(dbSubscriptionGroup)
+      .innerJoin(
+        dbSegment,
+        eq(dbSegment.subscriptionGroupId, dbSubscriptionGroup.id),
+      )
+      .where(inArray(dbSubscriptionGroup.id, subscriptionGroupFilter));
+    const subscriptionGroups = subscriptionGroupsRows.reduce(
+      (acc, subscriptionGroup) => {
+        acc.set(subscriptionGroup.id, {
+          type: subscriptionGroup.type as SubscriptionGroupType,
+          segmentId: subscriptionGroup.segmentId,
+        });
+        return acc;
+      },
+      new Map<
+        string,
+        {
+          type: SubscriptionGroupType;
+          segmentId: string;
+        }
+      >(),
+    );
+
+    for (const subscriptionGroup of subscriptionGroupFilter ?? []) {
+      const sg = subscriptionGroups.get(subscriptionGroup);
+      if (!sg) {
+        logger().error(
+          {
+            subscriptionGroupId: subscriptionGroup,
+            workspaceId,
+          },
+          "subscription group not found",
+        );
+        continue;
+      }
+      const { type, segmentId } = sg;
+      const varName = qb.getVariableName();
+      selectUserIdColumns.push(
+        `argMax(if(computed_property_id = ${qb.addQueryValue(segmentId, "String")}, segment_value, null), assigned_at) as ${varName}`,
+      );
+      if (type === SubscriptionGroupType.OptOut) {
+        havingSubClauses.push(`${varName} == True OR ${varName} IS NULL`);
+      } else {
+        havingSubClauses.push(`${varName} == True`);
+      }
+    }
+  }
+
   const havingClause =
     havingSubClauses.length > 0
       ? `HAVING ${havingSubClauses.join(" AND ")}`
@@ -345,27 +404,27 @@ export async function deleteUsers({
 
   const queries = [
     // Delete from user_events_v2
-    `ALTER TABLE user_events_v2 DELETE WHERE workspace_id = ${workspaceIdParam}
+    `DELETE FROM user_events_v2 WHERE workspace_id = ${workspaceIdParam}
      AND user_id IN (${userIdsParam});`,
 
     // Delete from computed_property_state_v2
-    `ALTER TABLE computed_property_state_v2 DELETE WHERE workspace_id = ${workspaceIdParam}
+    `DELETE FROM computed_property_state_v2 WHERE workspace_id = ${workspaceIdParam}
      AND user_id IN (${userIdsParam});`,
 
     // Delete from computed_property_assignments_v2
-    `ALTER TABLE computed_property_assignments_v2 DELETE WHERE workspace_id = ${workspaceIdParam}
+    `DELETE FROM computed_property_assignments_v2 WHERE workspace_id = ${workspaceIdParam}
      AND user_id IN (${userIdsParam});`,
 
     // Delete from processed_computed_properties_v2
-    `ALTER TABLE processed_computed_properties_v2 DELETE WHERE workspace_id = ${workspaceIdParam}
+    `DELETE FROM processed_computed_properties_v2 WHERE workspace_id = ${workspaceIdParam}
      AND user_id IN (${userIdsParam});`,
 
     // Delete from computed_property_state_index
-    `ALTER TABLE computed_property_state_index DELETE WHERE workspace_id = ${workspaceIdParam}
+    `DELETE FROM computed_property_state_index WHERE workspace_id = ${workspaceIdParam}
      AND user_id IN (${userIdsParam});`,
 
     // Delete from resolved_segment_state
-    `ALTER TABLE resolved_segment_state DELETE WHERE workspace_id = ${workspaceIdParam}
+    `DELETE FROM resolved_segment_state WHERE workspace_id = ${workspaceIdParam}
      AND user_id IN (${userIdsParam});`,
   ];
 
@@ -377,6 +436,7 @@ export async function deleteUsers({
         query_params: qb.getQueries(),
         clickhouse_settings: {
           wait_end_of_query: 1,
+          allow_experimental_lightweight_delete: 1,
           mutations_sync: "1",
         },
       }),
@@ -399,4 +459,144 @@ export async function deleteUsers({
         ),
       ),
   ]);
+}
+
+export async function getUsersCount({
+  workspaceId,
+  segmentFilter,
+  userIds,
+  userPropertyFilter,
+  subscriptionGroupFilter,
+}: Omit<GetUsersRequest, "cursor" | "direction" | "limit">): Promise<
+  Result<GetUsersCountResponse, Error>
+> {
+  const qb = new ClickHouseQueryBuilder();
+
+  const userPropertyWhereClause = userPropertyFilter
+    ? `AND computed_property_id IN ${qb.addQueryValue(
+        userPropertyFilter.map((property) => property.id),
+        "Array(String)",
+      )}`
+    : "";
+  const segmentWhereClause = segmentFilter
+    ? `AND computed_property_id IN ${qb.addQueryValue(
+        segmentFilter,
+        "Array(String)",
+      )}`
+    : "";
+
+  const selectUserIdColumns = ["user_id"];
+
+  const havingSubClauses: string[] = [];
+  for (const property of userPropertyFilter ?? []) {
+    const varName = qb.getVariableName();
+    selectUserIdColumns.push(
+      `argMax(if(computed_property_id = ${qb.addQueryValue(property.id, "String")}, user_property_value, null), assigned_at) as ${varName}`,
+    );
+    havingSubClauses.push(
+      `${varName} IN (${qb.addQueryValue(property.values, "Array(String)")})`,
+    );
+  }
+  for (const segment of segmentFilter ?? []) {
+    const varName = qb.getVariableName();
+    selectUserIdColumns.push(
+      `argMax(if(computed_property_id = ${qb.addQueryValue(segment, "String")}, segment_value, null), assigned_at) as ${varName}`,
+    );
+    havingSubClauses.push(`${varName} = True`);
+  }
+
+  if (subscriptionGroupFilter) {
+    const subscriptionGroupsRows = await db()
+      .select({
+        id: dbSubscriptionGroup.id,
+        type: dbSubscriptionGroup.type,
+        segmentId: dbSegment.id,
+      })
+      .from(dbSubscriptionGroup)
+      .innerJoin(
+        dbSegment,
+        eq(dbSegment.subscriptionGroupId, dbSubscriptionGroup.id),
+      )
+      .where(inArray(dbSubscriptionGroup.id, subscriptionGroupFilter));
+    const subscriptionGroups = subscriptionGroupsRows.reduce(
+      (acc, subscriptionGroup) => {
+        acc.set(subscriptionGroup.id, {
+          type: subscriptionGroup.type as SubscriptionGroupType,
+          segmentId: subscriptionGroup.segmentId,
+        });
+        return acc;
+      },
+      new Map<
+        string,
+        {
+          type: SubscriptionGroupType;
+          segmentId: string;
+        }
+      >(),
+    );
+
+    for (const subscriptionGroup of subscriptionGroupFilter ?? []) {
+      const sg = subscriptionGroups.get(subscriptionGroup);
+      if (!sg) {
+        logger().error(
+          {
+            subscriptionGroupId: subscriptionGroup,
+            workspaceId,
+          },
+          "subscription group not found",
+        );
+        continue;
+      }
+      const { type, segmentId } = sg;
+      const varName = qb.getVariableName();
+      selectUserIdColumns.push(
+        `argMax(if(computed_property_id = ${qb.addQueryValue(segmentId, "String")}, segment_value, null), assigned_at) as ${varName}`,
+      );
+      if (type === SubscriptionGroupType.OptOut) {
+        havingSubClauses.push(`${varName} == True OR ${varName} IS NULL`);
+      } else {
+        havingSubClauses.push(`${varName} == True`);
+      }
+    }
+  }
+  const havingClause =
+    havingSubClauses.length > 0
+      ? `HAVING ${havingSubClauses.join(" AND ")}`
+      : "";
+  const selectUserIdStr = selectUserIdColumns.join(", ");
+  const userIdsClause = userIds
+    ? `AND user_id IN (${qb.addQueryValue(userIds, "Array(String)")})`
+    : "";
+
+  // Using a similar nested query approach as getUsers
+  const query = `
+    SELECT
+      uniq(user_id) as user_count
+    FROM (
+      SELECT
+        ${selectUserIdStr}
+      FROM computed_property_assignments_v2
+      WHERE
+        workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+        ${userPropertyWhereClause}
+        ${segmentWhereClause}
+        ${userIdsClause}
+      GROUP BY workspace_id, user_id
+      ${havingClause}
+    )
+  `;
+
+  const results = await chQuery({
+    query,
+    query_params: qb.getQueries(),
+  });
+
+  const rows = await results.json<{ user_count: number }>();
+
+  // If no rows returned, count is 0
+  const userCount = rows.length > 0 ? Number(rows[0]?.user_count || 0) : 0;
+
+  return ok({
+    userCount,
+  });
 }

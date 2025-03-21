@@ -1,3 +1,4 @@
+import { AddCircleOutline } from "@mui/icons-material";
 import KeyboardBackspaceIcon from "@mui/icons-material/KeyboardBackspace";
 import {
   Autocomplete,
@@ -22,6 +23,7 @@ import {
   filterStorePick,
   FilterUserPropertyValueStage,
 } from "../lib/filterStore";
+import { greyTextFieldStyles } from "./greyScaleStyles";
 
 interface Option {
   id: string;
@@ -47,19 +49,37 @@ function ComputedPropertyAutocomplete({
       }}
       options={options}
       open
-      sx={{ width: theme.spacing(20), height: "100%" }}
+      sx={{ width: theme.spacing(30), height: "100%" }}
       autoComplete
       disablePortal
       renderInput={(params) => (
-        <TextField {...params} variant="filled" label={label} autoFocus />
+        <TextField
+          {...params}
+          variant="filled"
+          label={label}
+          autoFocus
+          InputProps={{
+            ...params.InputProps,
+            sx: {
+              borderRadius: 0,
+            },
+          }}
+          sx={greyTextFieldStyles}
+        />
       )}
       renderOption={(props, option) => {
         return (
-          <MenuItem {...props}>
+          <MenuItem
+            {...props}
+            sx={{
+              borderRadius: 0,
+              color: theme.palette.grey[700],
+            }}
+          >
             <Tooltip title={option.label}>
               <Box
                 sx={{
-                  width: theme.spacing(20),
+                  width: "100%",
                   textOverflow: "ellipsis",
                   overflow: "hidden",
                   whiteSpace: "nowrap",
@@ -143,11 +163,23 @@ function UserPropertyValueSelector({
     "setStage",
     "addUserProperty",
   ]);
+  const theme = useTheme();
+
   return (
     <TextField
       label="Value"
       value={stage.value}
       autoFocus
+      variant="filled"
+      InputProps={{
+        sx: {
+          borderRadius: 0,
+        },
+      }}
+      sx={{
+        ...greyTextFieldStyles,
+        width: theme.spacing(30),
+      }}
       onKeyDown={(e) => {
         if (e.key === "Enter") {
           addUserProperty();
@@ -168,6 +200,8 @@ function UserPropertyValueSelector({
 
 function ComputedPropertyTypeSelector() {
   const { setStage } = filterStorePick(["setStage"]);
+  const theme = useTheme();
+
   const FilterOptionsArray: {
     title: string;
     type: FilterStageType.Segment | FilterStageType.UserProperty;
@@ -182,7 +216,7 @@ function ComputedPropertyTypeSelector() {
     },
   ];
   return (
-    <>
+    <Box sx={{ width: theme.spacing(30) }}>
       {FilterOptionsArray.map((option) => (
         <MenuItem
           key={option.title}
@@ -191,11 +225,19 @@ function ComputedPropertyTypeSelector() {
               type: option.type,
             })
           }
+          sx={{
+            borderRadius: 0,
+            py: 1.5,
+            color: theme.palette.grey[700],
+            "&:hover": {
+              backgroundColor: theme.palette.grey[100],
+            },
+          }}
         >
-          {option.title}
+          <Typography variant="body2">{option.title}</Typography>
         </MenuItem>
       ))}
-    </>
+    </Box>
   );
 }
 
@@ -204,6 +246,7 @@ function SelectorFooter({ stage }: { stage: FilterStageWithBack }) {
     "setStage",
     "addUserProperty",
   ]);
+  const theme = useTheme();
 
   const handlePrevious = () => {
     switch (stage.type) {
@@ -232,16 +275,24 @@ function SelectorFooter({ stage }: { stage: FilterStageWithBack }) {
       textAlign="left"
       display="flex"
       justifyContent="space-between"
-      sx={{ p: 1 }}
+      sx={{
+        p: 1,
+        borderBottom: `1px solid ${theme.palette.divider}`,
+      }}
       alignItems="center"
     >
       <IconButton size="small" onClick={() => handlePrevious()}>
-        <KeyboardBackspaceIcon />
+        <KeyboardBackspaceIcon sx={{ color: theme.palette.grey[600] }} />
       </IconButton>
 
       {stage.type === FilterStageType.UserPropertyValue ? (
         <Typography
-          sx={{ fontSize: "10px", cursor: "pointer" }}
+          sx={{
+            fontSize: "12px",
+            cursor: "pointer",
+            color: theme.palette.grey[700],
+            fontWeight: 500,
+          }}
           onClick={addUserProperty}
         >
           Submit
@@ -251,10 +302,11 @@ function SelectorFooter({ stage }: { stage: FilterStageWithBack }) {
   );
 }
 
-export default function UsersFilterSelector() {
+export function UsersFilterSelector() {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
   const { stage, setStage } = filterStorePick(["setStage", "stage"]);
+  const theme = useTheme();
 
   const handleOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
     if (stage !== null) {
@@ -301,13 +353,25 @@ export default function UsersFilterSelector() {
   return (
     <>
       <Button
+        startIcon={<AddCircleOutline />}
+        variant="contained"
+        color="inherit"
         aria-controls={open ? "basic-menu" : undefined}
         aria-haspopup="true"
         aria-expanded={open ? "true" : undefined}
         onClick={handleOpen}
         type="button"
+        size="medium"
+        sx={{
+          height: theme.spacing(4.5),
+          bgcolor: theme.palette.grey[300],
+          color: theme.palette.grey[700],
+          "&:hover": {
+            bgcolor: theme.palette.grey[400],
+          },
+        }}
       >
-        Add filter
+        Add Filter
       </Button>
       <Popover
         id="basic-menu"
@@ -317,14 +381,30 @@ export default function UsersFilterSelector() {
         sx={{
           "& .MuiPopover-paper": {
             overflow: "visible",
+            borderRadius: 0,
+            boxShadow: 4,
           },
+        }}
+        anchorOrigin={{
+          vertical: "bottom",
+          horizontal: "left",
+        }}
+        transformOrigin={{
+          vertical: "top",
+          horizontal: "left",
         }}
         onClose={handleClose}
       >
         {stage && stage.type !== FilterStageType.ComputedPropertyType && (
           <SelectorFooter stage={stage} />
         )}
-        <Box>{stageEl}</Box>
+        <Box
+          sx={{
+            p: stage?.type === FilterStageType.ComputedPropertyType ? 0 : 1,
+          }}
+        >
+          {stageEl}
+        </Box>
       </Popover>
     </>
   );
