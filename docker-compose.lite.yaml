@@ -128,7 +128,7 @@ services:
       <<: *clickhouse-credentials
     ports:
       - "8141:8123"
-      - "9044:9000"
+      - "9082:9000"
       - "9049:9009"
     volumes:
       - clickhouse_lib:/var/lib/clickhouse
@@ -142,7 +142,7 @@ services:
     logging:
       driver: "local"
     ports:
-      - "9044:9000"
+      - "9082:9000"
       - "9045:9001"
     environment:
       MINIO_ROOT_USER: admin
