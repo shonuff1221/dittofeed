@@ -110,7 +110,7 @@ services:
       - POSTGRES_USER=${DATABASE_USER:-postgres}
       - POSTGRES_DB=dittofeed
     ports:
-      - "5491:5432"
+      - "5563:5432"
     volumes:
       - postgres:/var/lib/postgresql/data
     networks:
