@@ -110,7 +110,7 @@ services:
       - POSTGRES_USER=${DATABASE_USER:-postgres}
       - POSTGRES_DB=dittofeed
     ports:
-      - "5819:5432"
+      - "5831:5432"
     volumes:
       - postgres:/var/lib/postgresql/data
     networks:
@@ -127,7 +127,7 @@ services:
     environment:
       <<: *clickhouse-credentials
     ports:
-      - "8908:8123"
+      - "8909:8123"
       - "9082:9000"
       - "9049:9009"
     volumes:
