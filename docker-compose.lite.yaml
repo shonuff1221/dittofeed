@@ -127,7 +127,7 @@ services:
     environment:
       <<: *clickhouse-credentials
     ports:
-      - "8119:8123"
+      - "8488:8123"
       - "9082:9000"
       - "9049:9009"
     volumes:
