@@ -76,14 +76,12 @@ services:
       - POSTGRES_USER=${DATABASE_USER:-postgres}
       - POSTGRES_PWD=${DATABASE_PASSWORD:-password}
       - POSTGRES_SEEDS=${DATABASE_HOST:-postgres}
-      - DYNAMIC_CONFIG_FILE_PATH=/etc/temporal/config/dynamicconfig/prod.yaml
+      # Remove the dynamic config file path to use default settings
     image: temporalio/auto-setup:${TEMPORAL_VERSION:-1.22.4}
     networks:
       - dittofeed-network-lite
     ports:
       - 7233:7233
-    volumes:
-      - ./packages/backend-lib/temporal-dynamicconfig:/etc/temporal/config/dynamicconfig
   temporal-ui:
     profiles: ["temporal-ui"]
     container_name: temporal-ui
